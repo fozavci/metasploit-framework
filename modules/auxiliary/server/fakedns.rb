@@ -184,6 +184,11 @@ class Metasploit3 < Msf::Auxiliary
 
         when 'IN::SRV'
           res = Resolv::DNS.new().getresources(Resolv::DNS::Name.create(name),Resolv::DNS::Resource::IN::SRV)
+          if res.empty?
+            @error_resolving = true
+            print_error("Unable to resolve SRV record for #{name} -- skipping")
+            next
+          end
           host = res[0].target
           port = res[0].port.to_i
           weight = res[0].weight.to_i
