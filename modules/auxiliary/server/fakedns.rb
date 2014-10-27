@@ -183,7 +183,7 @@ class Metasploit3 < Msf::Auxiliary
           request.add_additional(name, 60, ar)
 
         when 'IN::SRV'
-          res = Resolv::DNS.new().getresources(Resolv::DNS::Name.create("#{name}"),Resolv::DNS::Resource::IN::SRV)
+          res = Resolv::DNS.new().getresources(Resolv::DNS::Name.create(name),Resolv::DNS::Resource::IN::SRV)
           host = res[0].target
           port = res[0].port.to_i
           weight = res[0].weight.to_i
