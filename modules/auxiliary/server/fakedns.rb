@@ -206,7 +206,7 @@ class Metasploit3 < Msf::Auxiliary
             else
               answers << Resolv::DNS::Resource::IN::SRV.new(priority, weight, port, Resolv::DNS::Name.create(host))
               authorities << Resolv::DNS::Resource::IN::NS.new(Resolv::DNS::Name.create("dns.#{name}"))
-              additionals << [ host, ::Rex::Socket.source_address(addr[3].to_s) ]
+              additionals << [ host, @targ || ::Rex::Socket.source_address(addr[3].to_s) ]
             end
           end
           # don't uniq the SRV answers -- return what the real response had
