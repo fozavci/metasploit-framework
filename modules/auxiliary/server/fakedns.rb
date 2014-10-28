@@ -91,9 +91,10 @@ class Metasploit3 < Msf::Auxiliary
       @error_resolving = false
       packet, addr = @sock.recvfrom(65535)
       @requestor = addr
-      break if packet.length == 0
+      next if packet.length == 0
 
       request = Resolv::DNS::Message.decode(packet)
+      next unless request.qr == 0
 
       #
       # XXX: Track request IDs by requesting IP address and port
