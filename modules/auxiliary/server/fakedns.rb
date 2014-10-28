@@ -183,7 +183,7 @@ class Metasploit3 < Msf::Auxiliary
           request.add_additional(name, 60, ar)
 
         when 'IN::SRV'
-          resources = Resolv::DNS.new().getresources(Resolv::DNS::Name.create(name),Resolv::DNS::Resource::IN::SRV)
+          resources = Resolv::DNS.new().getresources(Resolv::DNS::Name.create(name), Resolv::DNS::Resource::IN::SRV)
           if resources.empty?
             @error_resolving = true
             print_error("Unable to resolve SRV record for #{name} -- skipping")
@@ -197,12 +197,20 @@ class Metasploit3 < Msf::Auxiliary
             port = resource.port.to_i
             weight = resource.weight.to_i
             priority = resource.priority.to_i
-            host_ip = Resolv::DNS.new().getaddress(host).to_s
-            srv = Resolv::DNS::Resource::IN::SRV.new(priority,weight,port,Resolv::DNS::Name.create(host))
+            srv = Resolv::DNS::Resource::IN::SRV.new(priority, weight, port, Resolv::DNS::Name.create(host))
             ns = Resolv::DNS::Resource::IN::NS.new(Resolv::DNS::Name.create("dns.#{name}"))
+            answers << srv
+            authorities << ns
+            additionals << host
+          end
+          # don't uniq the SRV answers -- return what the real response had
+          answers.each { |srv| request.add_answer(name, 10, srv) }
+          # uniq the authorities and additional records since we are artificially
+          # inserting these into the response
+          authorities.uniq.each { |ns| request.add_authority(name, 60, ns) }
+          additionals.uniq.each do |host|
+            host_ip = Resolv::DNS.new().getaddress(host).to_s
             ar = Resolv::DNS::Resource::IN::A.new(host_ip)
-            request.add_answer(name, 10, srv)
-            request.add_authority(name, 60, ns)
             request.add_additional(Resolv::DNS::Name.create(host), 60, ar)
           end
 
