@@ -49,7 +49,7 @@ class Metasploit3 < Msf::Auxiliary
 
     each_packet do |pkt|
       p = PacketFu::Packet.parse(pkt)
-      next unless p.proto != ["Eth", "LLDP"] && p.payload =~ /\x01\x00\f\xCC\xCC\xCC/
+      next unless p.proto != ["Eth", "LLDP"] && p.payload =~ /\x01\x00\x0C\xCC\xCC\xCC/
       pay = p.payload
       pos = 30
       cdp = pay[22].getbyte(0)
