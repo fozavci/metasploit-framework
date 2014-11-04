@@ -36,17 +36,45 @@ class Metasploit3 < Msf::Auxiliary
     deregister_options('RHOST')
   end
 
-  def run
-    check_pcaprub_loaded # Check first
-    lbl = ["CDP Version\t", "Device Id\t", "IP Address\t",  "Switch Port\t",  "Capabilities",  "Software\t", "Platform\t",  nil, "Cluster Management",  "VTP Domain Management" , "Native VLAN\t", nil,  nil,  nil,  nil,  "VoIP VLAN Query"]
-    print_status("Sniffing traffic.....")
-
+  def setup
+    check_pcaprub_loaded
+    unless smac
+      fail ArgumentError, "Unable to get SMAC from #{interface} -- Set INTERFACE or SMAC"
+    end
     open_pcap
+    close_pcap
+  end
 
-    if action.name == 'Spoof'
-      send_spoof
+  def interface
+    @interface ||= datastore['INTERFACE'] || Pcap.lookupdev
+  end
+
+  def smac
+    @smac ||= datastore['SMAC'] || get_mac(interface)
+  end
+
+  def run
+    begin
+      open_pcap
+
+      case action.name
+      when 'Spoof'
+        do_spoof
+      when 'Sniff'
+        do_sniff
+      else
+        # this should never happen
+        fail ArgumentError, "Invalid action #{action.name}"
+      end
+    ensure
+      close_pcap
     end
 
+  end
+
+  def do_sniff
+    print_status("Sniffing traffic on #{interface}")
+    lbl = ["CDP Version\t", "Device Id\t", "IP Address\t",  "Switch Port\t",  "Capabilities",  "Software\t", "Platform\t",  nil, "Cluster Management",  "VTP Domain Management" , "Native VLAN\t", nil,  nil,  nil,  nil,  "VoIP VLAN Query"]
     each_packet do |pkt|
       p = PacketFu::Packet.parse(pkt)
       next unless p.proto != ["Eth", "LLDP"] && p.payload =~ /\x01\x00\x0C\xCC\xCC\xCC/
@@ -116,27 +144,11 @@ class Metasploit3 < Msf::Auxiliary
       end
       print_good("#{report}")
     end
-    close_pcap
     print_status("Finished sniffing")
   end
 
-  def setup
-    unless smac
-      fail ArgumentError, "Unable to get SMAC from #{interface} -- Set INTERFACE or SMAC"
-    end
-    open_pcap
-    close_pcap
-  end
-
-  def interface
-    @interface ||= datastore['INTERFACE'] || Pcap.lookupdev
-  end
-
-  def smac
-    @smac ||= datastore['SMAC'] || get_mac(interface)
-  end
-
-  def send_spoof
+  def do_spoof
+    print_status("Sending CDP message on #{interface}")
     p = prep_cdp                                              # Preparation of the CDP content
     dst_mac = "\x01\x00\x0C\xCC\xCC\xCC"                      # CDP multicast
 
