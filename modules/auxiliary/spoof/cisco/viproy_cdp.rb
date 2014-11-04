@@ -29,7 +29,7 @@ class Metasploit3 < Msf::Auxiliary
         OptString.new('DEVICE_ID', [true, "Device ID (e.g. SIP00070EEA3156)", "SEP00070EEA3156"]),
         OptString.new('PORT', [true, "The Switch Port", "1"]),
         # XXX: this is not currently implemented
-        #OptString.new('CAPABILITIES',   [false, "Capabilities of the device (e.g. Router, Host, Switch)", "Router"]),
+        # OptString.new('CAPABILITIES',   [false, "Capabilities of the device (e.g. Router, Host, Switch)", "Router"]),
         OptString.new('PLATFORM', [true, "Platform of the device", "Cisco IP Phone 7975"]),
         OptString.new('SOFTWARE', [true, "Software of the device", "SCCP75.9-3-1SR2-1S"]),
         OptBool.new('FULL_DUPLEX', [true, 'True iff full-duplex, false otherwise', true])
@@ -70,7 +70,6 @@ class Metasploit3 < Msf::Auxiliary
     ensure
       close_pcap
     end
-
   end
 
   def do_sniff
@@ -197,7 +196,7 @@ class Metasploit3 < Msf::Auxiliary
     p << "\x00\x06#{l(platform)}#{platform}"                # Platform
     p << "\x00\x09#{l(vtpdomain)}#{vtpdomain}" if vtpdomain # VTP Domain Management
     p << "\x00\x10\x00\x06\x18\x9C"                         # Power Consumption 6300 mW
-    p << "\x00\x0b\x00\x05#{datastore['FULL_DUPLEX'] ? "\x01" : "\x00"}"# Duplex
+    p << "\x00\x0b\x00\x05#{datastore['FULL_DUPLEX'] ? "\x01" : "\x00"}" # Duplex
     p << "\x00\x0F\x00\b \x02\x00\x01"                      # VLAN Query
 
     # Header Preperation
