@@ -157,12 +157,10 @@ class Metasploit3 < Msf::Auxiliary
 
     # Injecting packet to the network
     l = PacketFu::Inject.new(iface: interface)
-    cdplength = ["%04X" % (p.length + 8).to_s].pack('H*')
-    l.array_to_wire(array: ["#{dst_mac}#{src_mac}#{cdplength}" + llc + p])
-  end
-
-  def llc
-    "\xAA\xAA\x03\x00\x00\f \x00"
+    cdp_length = ["%04X" % (p.length + 8).to_s].pack('H*')
+    dot3 = dst_mac + src_mac + cdp_length
+    llc = "\xAA\xAA\x03\x00\x00\x0c\x20\x00"
+    l.array_to_wire(array: [dot3 + llc + p])
   end
 
   def mac_to_bytes(mac)
