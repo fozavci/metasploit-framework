@@ -28,10 +28,11 @@ class Metasploit3 < Msf::Auxiliary
         OptString.new('VTPDOMAIN', [false, "VTP Domain"]),
         OptString.new('DEVICE_ID', [true, "Device ID (e.g. SIP00070EEA3156)", "SEP00070EEA3156"]),
         OptString.new('PORT', [true, "The Switch Port", "1"]),
-        OptString.new('CAPABILITIES',   [false, "Capabilities of the device (e.g. Router, Host, Switch)", "Router"]),
+        # XXX: this is not currently implemented
+        #OptString.new('CAPABILITIES',   [false, "Capabilities of the device (e.g. Router, Host, Switch)", "Router"]),
         OptString.new('PLATFORM', [true, "Platform of the device", "Cisco IP Phone 7975"]),
         OptString.new('SOFTWARE', [true, "Software of the device", "SCCP75.9-3-1SR2-1S"]),
-        OptBool.new('DUPLEX', [true, 'Duplex', true])
+        OptBool.new('FULL_DUPLEX', [true, 'True iff full-duplex, false otherwise', true])
       ], self.class)
     deregister_options('RHOST')
   end
@@ -173,7 +174,8 @@ class Metasploit3 < Msf::Auxiliary
     # options from the user
     device = datastore['DEVICE_ID']
     port = datastore['PORT']
-    capabilities = datastore['CAPABILITIES'] || "Host"
+    # TODO: implement this correctly
+    # capabilities = datastore['CAPABILITIES'] || "Host"
     platform = datastore['PLATFORM']
     software = datastore['SOFTWARE']
     vtpdomain = datastore['VTPDOMAIN'] if datastore['VTPDOMAIN']
@@ -190,12 +192,12 @@ class Metasploit3 < Msf::Auxiliary
     # Package Preperation
     p  = "\x00\x01#{l(device)}#{device}"                    # Device ID
     p << "\x00\x03#{l("Port #{port}")}Port #{port}"         # Port ID
-    p << "\x00\x04\x00\b\x00\x00\x00A"                      # Capabilities
+    p << "\x00\x04\x00\b\x00\x00\x00A"                      # Capabilities, XXX: hardcoded
     p << "\x00\x05#{l(software)}#{software}"                # Software Version
     p << "\x00\x06#{l(platform)}#{platform}"                # Platform
     p << "\x00\x09#{l(vtpdomain)}#{vtpdomain}" if vtpdomain # VTP Domain Management
     p << "\x00\x10\x00\x06\x18\x9C"                         # Power Consumption 6300 mW
-    p << "\x00\v\x00\x05#{datastore['DUPLEX'] ? 1 : 0}"     # Duplex
+    p << "\x00\x0b\x00\x05#{datastore['FULL_DUPLEX'] ? "\x01" : "\x00"}"# Duplex
     p << "\x00\x0F\x00\b \x02\x00\x01"                      # VLAN Query
 
     # Header Preperation
