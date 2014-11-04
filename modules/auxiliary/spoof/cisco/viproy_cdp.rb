@@ -138,7 +138,7 @@ class Metasploit3 < Msf::Auxiliary
 
   def send_spoof
     p = prep_cdp                                              # Preparation of the CDP content
-    dst_mac = "\x01\x00\f\xCC\xCC\xCC"                        # CDP multicast
+    dst_mac = "\x01\x00\x0C\xCC\xCC\xCC"                      # CDP multicast
 
     # Source Mac Address Preparation
     src_mac = mac_to_bytes(smac)
